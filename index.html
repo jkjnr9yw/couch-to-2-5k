@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Couch to 2.5K Trainer</title>
+    <meta name="description" content="A 12-week couch-to-2.5K interval running trainer with an audio-cued timer.">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #10b981;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --info-bg: #eff6ff;
+            --info-border: #bfdbfe;
+            --track: #e2e8f0;
+            --run-color: #2563eb;
+            --walk-color: #10b981;
+            --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b1220;
+                --card-bg: #111a2e;
+                --text: #f1f5f9;
+                --text-light: #94a3b8;
+                --border: #1e293b;
+                --info-bg: #11213f;
+                --info-border: #1d3a6b;
+                --track: #1e293b;
+                --run-color: #60a5fa;
+                --walk-color: #34d399;
+                --shadow: none;
+            }
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { -webkit-text-size-adjust: 100%; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            max-width: 480px;
+            margin: 0 auto;
+            padding:
+                calc(1rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right))
+                calc(1.5rem + env(safe-area-inset-bottom)) calc(1rem + env(safe-area-inset-left));
+            min-height: 100dvh;
+        }
+
+        header { text-align: center; margin-bottom: 1.25rem; }
+        h1 { font-size: 1.6rem; color: var(--primary); letter-spacing: -0.02em; }
+        @media (prefers-color-scheme: dark) { h1 { color: var(--run-color); } }
+        p.subtitle { color: var(--text-light); font-size: 0.9rem; }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        label.field-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.85rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background-color: var(--card-bg);
+            color: var(--text);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        select:disabled { opacity: 0.6; }
+
+        .week-info {
+            display: flex;
+            gap: 0.75rem;
+            margin: 1rem 0 0.75rem;
+        }
+        .week-info .stat {
+            flex: 1;
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            padding: 0.6rem 0.75rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .week-info .stat-label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-light);
+        }
+        .week-info .stat-value { font-weight: 700; font-size: 1.05rem; }
+
+        .schedule-details {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 0.25rem;
+        }
+
+        hr { border: 0; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+        .workouts-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .workout-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.6rem 0.5rem;
+            border-radius: 8px;
+            min-height: 44px;
+        }
+        .workout-checkbox-label:active { background: var(--info-bg); }
+        .workout-checkbox-label input {
+            width: 1.35rem; height: 1.35rem;
+            accent-color: var(--secondary);
+            flex-shrink: 0;
+        }
+        .workout-checkbox-label input:checked + span { color: var(--text-light); text-decoration: line-through; }
+
+        /* Timer */
+        .timer-section { text-align: center; }
+        .phase-display {
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-light);
+            min-height: 1.6rem;
+        }
+        .timer-display {
+            font-size: clamp(3.5rem, 22vw, 5rem);
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin: 0.25rem 0 0.5rem;
+        }
+        .next-up { font-size: 0.85rem; color: var(--text-light); min-height: 1.2rem; margin-bottom: 0.75rem; }
+
+        .progress-bar-container {
+            width: 100%; height: 14px;
+            background: var(--track);
+            border-radius: 7px;
+            overflow: hidden;
+            margin-bottom: 0.4rem;
+        }
+        .progress-bar {
+            width: 0%; height: 100%;
+            background: var(--run-color);
+            transition: width 0.25s linear, background-color 0.3s;
+        }
+        .progress-bar-container.overall { height: 6px; }
+        .progress-bar.overall-bar { background: var(--text-light); transition: width 0.25s linear; }
+
+        .session-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: var(--text-light);
+            margin: 0.5rem 0 1.1rem;
+        }
+
+        .controls-primary { margin-bottom: 0.6rem; }
+        .controls-secondary { display: flex; gap: 0.6rem; }
+
+        button.btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            color: #fff;
+            min-height: 52px;
+            -webkit-tap-highlight-color: transparent;
+            transition: filter 0.15s, opacity 0.15s;
+        }
+        button.btn:active:not(:disabled) { filter: brightness(0.92); }
+        button.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .controls-secondary .btn { flex: 1; font-size: 0.95rem; padding: 0.8rem; }
+
+        .btn-primary { background-color: var(--secondary); }
+        .btn-primary.running { background-color: var(--warn); }
+        .btn-skip { background-color: var(--text-light); }
+        .btn-reset { background-color: var(--danger); }
+
+        footer { text-align: center; font-size: 0.75rem; color: var(--text-light); margin-top: 0.5rem; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .progress-bar, .progress-bar.overall-bar, button.btn { transition: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Couch to 2.5K</h1>
+        <p class="subtitle">12-Week Modified Running Program</p>
+    </header>
+
+    <main>
+        <!-- Timer Card (first — it's the thing you use mid-run) -->
+        <div class="card timer-section">
+            <div class="phase-display" id="phaseDisplay" aria-live="polite">Ready</div>
+            <div class="timer-display" id="timerDisplay" aria-live="off">00:00</div>
+            <div class="next-up" id="nextUp"></div>
+
+            <div class="progress-bar-container" aria-hidden="true">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-bar-container overall" aria-hidden="true">
+                <div class="progress-bar overall-bar" id="overallBar"></div>
+            </div>
+            <div class="session-meta">
+                <span id="segmentInfo">Segment –/–</span>
+                <span id="sessionRemaining">–– left</span>
+            </div>
+
+            <div class="controls-primary">
+                <button class="btn btn-primary" id="primaryBtn">Start</button>
+            </div>
+            <div class="controls-secondary">
+                <button class="btn btn-skip" id="skipBtn" disabled>Skip&nbsp;&raquo;</button>
+                <button class="btn btn-reset" id="resetBtn">Reset</button>
+            </div>
+        </div>
+
+        <!-- Program Card -->
+        <div class="card">
+            <label class="field-label" for="weekSelect">Training Week</label>
+            <select id="weekSelect"></select>
+
+            <div class="week-info">
+                <span class="stat">
+                    <span class="stat-label">Total Time</span>
+                    <span class="stat-value" id="totalTimeDisplay">--</span>
+                </span>
+                <span class="stat">
+                    <span class="stat-label">Goal Distance</span>
+                    <span class="stat-value" id="goalDistanceDisplay">--</span>
+                </span>
+            </div>
+
+            <div class="schedule-details" id="scheduleDetails"></div>
+
+            <hr>
+
+            <label class="field-label">Weekly Workouts</label>
+            <div class="workouts-list" id="workoutsList"></div>
+        </div>
+
+        <footer id="statusNote"></footer>
+    </main>
+
+    <script>
+    (function () {
+        "use strict";
+
+        const programData = [
+            { week: 1,  time: "24m",   distance: "~1.0 mi",       desc: "1m run / 2m walk × 8",            intervals: [{ type: "run", duration: 60  }, { type: "walk", duration: 120 }], repeats: 8 },
+            { week: 2,  time: "24.5m", distance: "~1.1 mi",       desc: "1.5m run / 2m walk × 7",          intervals: [{ type: "run", duration: 90  }, { type: "walk", duration: 120 }], repeats: 7 },
+            { week: 3,  time: "28m",   distance: "~1.2 mi",       desc: "2m run / 2m walk × 7",            intervals: [{ type: "run", duration: 120 }, { type: "walk", duration: 120 }], repeats: 7 },
+            { week: 4,  time: "30m",   distance: "~1.3 mi",       desc: "3m run / 2m walk × 6",            intervals: [{ type: "run", duration: 180 }, { type: "walk", duration: 120 }], repeats: 6 },
+            { week: 5,  time: "30m",   distance: "~1.4 mi",       desc: "4m run / 2m walk × 5",            intervals: [{ type: "run", duration: 240 }, { type: "walk", duration: 120 }], repeats: 5 },
+            { week: 6,  time: "28m",   distance: "~1.45 mi",      desc: "5m run / 2m walk × 4",            intervals: [{ type: "run", duration: 300 }, { type: "walk", duration: 120 }], repeats: 4 },
+            { week: 7,  time: "32m",   distance: "~1.5 mi",       desc: "6m run / 2m walk × 4",            intervals: [{ type: "run", duration: 360 }, { type: "walk", duration: 120 }], repeats: 4 },
+            { week: 8,  time: "35m",   distance: "~1.55 mi",      desc: "8m run / 2m walk × 3 + 5m run",   intervals: [{ type: "run", duration: 480 }, { type: "walk", duration: 120 }], repeats: 3, extra: { type: "run", duration: 300 } },
+            { week: 9,  time: "36m",   distance: "~1.6 mi",       desc: "10m run / 2m walk × 3",           intervals: [{ type: "run", duration: 600 }, { type: "walk", duration: 120 }], repeats: 3 },
+            { week: 10, time: "36m",   distance: "~1.6 mi",       desc: "12m run / 2m walk + 10m run",     intervals: [{ type: "run", duration: 720 }, { type: "walk", duration: 120 }], repeats: 1, extra: { type: "run", duration: 600 } },
+            { week: 11, time: "37m",   distance: "~1.65 mi",      desc: "15m run / 2m walk + 10m run",     intervals: [{ type: "run", duration: 900 }, { type: "walk", duration: 120 }], repeats: 1, extra: { type: "run", duration: 600 } },
+            { week: 12, time: "25m",   distance: "~1.55-1.7 mi",  desc: "25m continuous run",              intervals: [{ type: "run", duration: 1500 }], repeats: 1 }
+        ];
+
+        const $ = (id) => document.getElementById(id);
+        const el = {
+            weekSelect: $("weekSelect"),
+            totalTime: $("totalTimeDisplay"),
+            goalDistance: $("goalDistanceDisplay"),
+            schedule: $("scheduleDetails"),
+            workoutsList: $("workoutsList"),
+            phase: $("phaseDisplay"),
+            timer: $("timerDisplay"),
+            nextUp: $("nextUp"),
+            progress: $("progressBar"),
+            overall: $("overallBar"),
+            segmentInfo: $("segmentInfo"),
+            sessionRemaining: $("sessionRemaining"),
+            primaryBtn: $("primaryBtn"),
+            skipBtn: $("skipBtn"),
+            resetBtn: $("resetBtn"),
+            statusNote: $("statusNote")
+        };
+
+        // --- Timer state (timestamp-based so it survives backgrounding/throttling) ---
+        let weekIndex = 0;
+        let queue = [];           // flattened [{type, duration}]
+        let totalSessionSec = 0;  // sum of all phase durations
+        let idx = 0;              // current phase index
+        let phaseAccumMs = 0;     // ms already spent in current phase (from prior running segments)
+        let segStartMs = 0;       // Date.now() when the current running segment began
+        let running = false;
+        let finished = false;
+        let tickHandle = null;
+        let lastCountdownBeep = null;
+        let audioCtx = null;
+        let wakeLock = null;
+
+        // ---------- Storage helpers (never throw: private mode / blocked storage) ----------
+        function lsGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+        function lsSet(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+
+        // ---------- Audio ----------
+        function ensureAudio() {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        }
+
+        function beep(high) {
+            try {
+                if (!audioCtx) return;
+                const t = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(high ? 880 : 440, t);
+                gain.gain.setValueAtTime(0.0001, t);
+                gain.gain.exponentialRampToValueAtTime(0.15, t + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + (high ? 0.45 : 0.2));
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(t);
+                osc.stop(t + (high ? 0.5 : 0.25));
+            } catch (e) { /* audio blocked */ }
+        }
+
+        function vibrate(pattern) {
+            try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+        }
+
+        // ---------- Wake lock (keep screen awake during a workout) ----------
+        async function requestWakeLock() {
+            try {
+                if ("wakeLock" in navigator && !wakeLock) {
+                    wakeLock = await navigator.wakeLock.request("screen");
+                    wakeLock.addEventListener("release", () => { wakeLock = null; });
+                }
+            } catch (e) { /* denied / unsupported */ }
+        }
+        function releaseWakeLock() {
+            try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {}
+        }
+
+        // ---------- Formatting ----------
+        function fmt(totalSec) {
+            totalSec = Math.max(0, Math.round(totalSec));
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+        }
+
+        // ---------- Program / queue ----------
+        function buildQueue(data) {
+            const q = [];
+            for (let r = 0; r < data.repeats; r++) {
+                data.intervals.forEach((iv) => q.push({ type: iv.type, duration: iv.duration }));
+            }
+            if (data.extra) q.push({ type: data.extra.type, duration: data.extra.duration });
+            queue = q;
+            totalSessionSec = q.reduce((sum, p) => sum + p.duration, 0);
+        }
+
+        function completedSecBefore(i) {
+            let s = 0;
+            for (let k = 0; k < i && k < queue.length; k++) s += queue[k].duration;
+            return s;
+        }
+
+        function populateWeekSelector() {
+            const frag = document.createDocumentFragment();
+            programData.forEach((w, i) => {
+                const o = document.createElement("option");
+                o.value = String(i);
+                o.textContent = "Week " + w.week;
+                frag.appendChild(o);
+            });
+            el.weekSelect.appendChild(frag);
+        }
+
+        function renderWorkouts() {
+            el.workoutsList.innerHTML = "";
+            const frag = document.createDocumentFragment();
+            for (let i = 1; i <= 3; i++) {
+                const key = "c25k_w" + (weekIndex + 1) + "_workout_" + i;
+                const label = document.createElement("label");
+                label.className = "workout-checkbox-label";
+                const cb = document.createElement("input");
+                cb.type = "checkbox";
+                cb.checked = lsGet(key) === "true";
+                cb.addEventListener("change", () => lsSet(key, String(cb.checked)));
+                const span = document.createElement("span");
+                span.textContent = "Workout " + i;
+                label.appendChild(cb);
+                label.appendChild(span);
+                frag.appendChild(label);
+            }
+            el.workoutsList.appendChild(frag);
+        }
+
+        function loadWeek() {
+            weekIndex = parseInt(el.weekSelect.value, 10) || 0;
+            lsSet("c25k_selected_week", String(weekIndex));
+            const data = programData[weekIndex];
+            el.totalTime.textContent = data.time;
+            el.goalDistance.textContent = data.distance;
+            el.schedule.textContent = data.desc;
+            renderWorkouts();
+            buildQueue(data);
+            resetSession();
+        }
+
+        // ---------- Session control ----------
+        function colorFor(type) { return type === "run" ? "var(--run-color)" : "var(--walk-color)"; }
+
+        function resetSession() {
+            stopTick();
+            running = false;
+            finished = false;
+            idx = 0;
+            phaseAccumMs = 0;
+            segStartMs = 0;
+            lastCountdownBeep = null;
+            releaseWakeLock();
+            el.weekSelect.disabled = false;
+            el.skipBtn.disabled = true;
+            setPrimary("Start", false);
+            renderReady();
+        }
+
+        function renderReady() {
+            const first = queue[0];
+            if (!first) return;
+            el.phase.textContent = "Ready · " + first.type.toUpperCase();
+            el.phase.style.color = colorFor(first.type);
+            el.timer.textContent = fmt(first.duration);
+            el.progress.style.width = "0%";
+            el.progress.style.backgroundColor = colorFor(first.type);
+            el.overall.style.width = "0%";
+            el.segmentInfo.textContent = "Segment 1/" + queue.length;
+            el.sessionRemaining.textContent = fmt(totalSessionSec) + " total";
+            el.nextUp.textContent = queue[1] ? "Next: " + queue[1].type + " · " + fmt(queue[1].duration) : "Final segment";
+        }
+
+        function setPrimary(text, isRunning) {
+            el.primaryBtn.textContent = text;
+            el.primaryBtn.classList.toggle("running", isRunning);
+        }
+
+        function start() {
+            if (running || finished || !queue.length) return;
+            ensureAudio();
+            running = true;
+            segStartMs = Date.now();
+            el.weekSelect.disabled = true;
+            el.skipBtn.disabled = false;
+            setPrimary("Pause", true);
+            requestWakeLock();
+            onPhaseEnter(false); // sets labels for current phase without a switch beep
+            startTick();
+        }
+
+        function pause() {
+            if (!running) return;
+            phaseAccumMs += Date.now() - segStartMs;
+            running = false;
+            stopTick();
+            releaseWakeLock();
+            setPrimary("Resume", false);
+            el.phase.textContent = "Paused";
+            el.phase.style.color = "var(--text-light)";
+        }
+
+        function togglePrimary() {
+            if (finished) { resetSession(); return; }
+            running ? pause() : start();
+        }
+
+        function skip() {
+            if (finished || !queue.length) return;
+            // Jump to the start of the next phase.
+            idx++;
+            phaseAccumMs = 0;
+            segStartMs = Date.now();
+            if (idx >= queue.length) { finish(); return; }
+            onPhaseEnter(true);
+            if (!running) { // skipping while paused: show the new phase, stay paused
+                render();
+            }
+        }
+
+        function onPhaseEnter(withCue) {
+            lastCountdownBeep = null;
+            const p = queue[idx];
+            el.phase.textContent = p.type.toUpperCase();
+            el.phase.style.color = colorFor(p.type);
+            el.progress.style.backgroundColor = colorFor(p.type);
+            el.nextUp.textContent = queue[idx + 1]
+                ? "Next: " + queue[idx + 1].type + " · " + fmt(queue[idx + 1].duration)
+                : "Final segment — finish strong!";
+            if (withCue) {
+                beep(true);
+                vibrate([120, 60, 120]);
+            }
+        }
+
+        function finish() {
+            stopTick();
+            running = false;
+            finished = true;
+            releaseWakeLock();
+            el.weekSelect.disabled = false;
+            el.skipBtn.disabled = true;
+            el.phase.textContent = "Complete! 🎉";
+            el.phase.style.color = "var(--secondary)";
+            el.timer.textContent = "00:00";
+            el.nextUp.textContent = "Nice work.";
+            el.progress.style.width = "100%";
+            el.overall.style.width = "100%";
+            el.segmentInfo.textContent = "Segment " + queue.length + "/" + queue.length;
+            el.sessionRemaining.textContent = "Done";
+            setPrimary("Start Again", false);
+            beep(true);
+            vibrate([200, 80, 200, 80, 200]);
+        }
+
+        // ---------- Tick loop (recomputes from timestamps every frame) ----------
+        function startTick() {
+            stopTick();
+            tick();
+            tickHandle = setInterval(tick, 250);
+        }
+        function stopTick() {
+            if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
+        }
+
+        function tick() {
+            if (!running) return;
+            const now = Date.now();
+            let elapsedInPhase = phaseAccumMs + (now - segStartMs);
+            let phaseMs = queue[idx].duration * 1000;
+
+            // Advance across any phases that fully elapsed (handles throttled/background catch-up).
+            while (elapsedInPhase >= phaseMs) {
+                const overflow = elapsedInPhase - phaseMs;
+                idx++;
+                if (idx >= queue.length) { finish(); return; }
+                phaseAccumMs = 0;
+                segStartMs = now - overflow;
+                elapsedInPhase = overflow;
+                phaseMs = queue[idx].duration * 1000;
+                onPhaseEnter(true);
+            }
+
+            const remainingMs = phaseMs - elapsedInPhase;
+            const remSec = Math.ceil(remainingMs / 1000);
+            if (remSec <= 3 && remSec > 0 && remSec !== lastCountdownBeep) {
+                lastCountdownBeep = remSec;
+                beep(false);
+            }
+            render(remainingMs, elapsedInPhase, phaseMs);
+        }
+
+        function render(remainingMs, elapsedInPhase, phaseMs) {
+            const p = queue[idx];
+            if (!p) return;
+            if (remainingMs === undefined) {
+                // Static render (e.g. skip while paused)
+                phaseMs = p.duration * 1000;
+                elapsedInPhase = phaseAccumMs;
+                remainingMs = phaseMs - elapsedInPhase;
+            }
+            el.timer.textContent = fmt(remainingMs / 1000);
+            el.progress.style.width = Math.min(100, (elapsedInPhase / phaseMs) * 100) + "%";
+
+            const sessionElapsedSec = completedSecBefore(idx) + elapsedInPhase / 1000;
+            el.overall.style.width = Math.min(100, (sessionElapsedSec / totalSessionSec) * 100) + "%";
+            el.segmentInfo.textContent = "Segment " + (idx + 1) + "/" + queue.length;
+            el.sessionRemaining.textContent = fmt(totalSessionSec - sessionElapsedSec) + " left";
+        }
+
+        // ---------- Visibility: re-sync + re-acquire wake lock on return ----------
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible" && running) {
+                requestWakeLock();
+                tick(); // immediately correct the display after any throttling
+            }
+        });
+
+        // ---------- Init ----------
+        function init() {
+            populateWeekSelector();
+            const saved = parseInt(lsGet("c25k_selected_week"), 10);
+            if (!isNaN(saved) && saved >= 0 && saved < programData.length) {
+                el.weekSelect.value = String(saved);
+            }
+            loadWeek();
+
+            el.weekSelect.addEventListener("change", loadWeek);
+            el.primaryBtn.addEventListener("click", togglePrimary);
+            el.skipBtn.addEventListener("click", skip);
+            el.resetBtn.addEventListener("click", resetSession);
+
+            if (!("wakeLock" in navigator)) {
+                el.statusNote.textContent = "Tip: keep this screen on during your run — your browser won't hold it awake automatically.";
+            }
+
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker.register("./sw.js").catch(() => {});
+                });
+            }
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# Optional: deploy as a Cloudflare Worker serving static assets.
+# For a purely static app, Cloudflare Pages (see README) is simpler — this is
+# here only if you specifically want a Worker (e.g. to add an API route later).
+name = "couch-to-2-5k"
+compatibility_date = "2025-01-01"
+
+# Serve this directory's files directly from the edge, no Worker script needed.
+assets = { directory = "./", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application" }
