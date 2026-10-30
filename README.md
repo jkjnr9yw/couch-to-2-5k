@@ -98,3 +98,7 @@ Add a custom domain under the project's **Custom domains** tab.
 - **Installable + offline:** once loaded, it caches itself and runs with no
   signal. Bump `CACHE` in `sw.js` whenever you change a file so clients update.
 - Selected week and completed-workout checkmarks persist in `localStorage`.
+
+## License
+
+[MIT](LICENSE) © Trevor Hubbard
