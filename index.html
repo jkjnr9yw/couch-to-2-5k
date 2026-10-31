@@ -292,6 +292,9 @@
     (function () {
         "use strict";
 
+        const WARMUP_SEC = 300;    // 5-min walk warm-up before each workout
+        const COOLDOWN_SEC = 300;  // 5-min walk cool-down after each workout
+
         const programData = [
             { week: 1,  time: "24m",   distance: "~1.0 mi",       desc: "1m run / 2m walk × 8",            intervals: [{ type: "run", duration: 60  }, { type: "walk", duration: 120 }], repeats: 8 },
             { week: 2,  time: "24.5m", distance: "~1.1 mi",       desc: "1.5m run / 2m walk × 7",          intervals: [{ type: "run", duration: 90  }, { type: "walk", duration: 120 }], repeats: 7 },
@@ -354,21 +357,34 @@
             if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
         }
 
-        function beep(high) {
+        // One tone scheduled `offset` seconds from now.
+        function tone(freq, offset, dur, peak, type) {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime + offset;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type || "sine";
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.0001, t);
+            gain.gain.exponentialRampToValueAtTime(peak, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(t);
+            osc.stop(t + dur + 0.03);
+        }
+
+        // Soft single tick for the 3-2-1 countdown into a switch.
+        function beepCountdown() {
+            try { tone(660, 0, 0.14, 0.3); } catch (e) { /* audio blocked */ }
+        }
+
+        // Interval-change cue: two short + one longer tone, loud enough to hear mid-run.
+        function phaseCue() {
             try {
-                if (!audioCtx) return;
-                const t = audioCtx.currentTime;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = "sine";
-                osc.frequency.setValueAtTime(high ? 880 : 440, t);
-                gain.gain.setValueAtTime(0.0001, t);
-                gain.gain.exponentialRampToValueAtTime(0.15, t + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.0001, t + (high ? 0.45 : 0.2));
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(t);
-                osc.stop(t + (high ? 0.5 : 0.25));
+                tone(880,  0.00, 0.12, 0.55, "triangle");
+                tone(880,  0.20, 0.12, 0.55, "triangle");
+                tone(1047, 0.42, 0.55, 0.60, "triangle");
             } catch (e) { /* audio blocked */ }
         }
 
@@ -400,10 +416,12 @@
         // ---------- Program / queue ----------
         function buildQueue(data) {
             const q = [];
+            q.push({ type: "walk", duration: WARMUP_SEC, label: "warm-up" });
             for (let r = 0; r < data.repeats; r++) {
                 data.intervals.forEach((iv) => q.push({ type: iv.type, duration: iv.duration }));
             }
             if (data.extra) q.push({ type: data.extra.type, duration: data.extra.duration });
+            q.push({ type: "walk", duration: COOLDOWN_SEC, label: "cool-down" });
             queue = q;
             totalSessionSec = q.reduce((sum, p) => sum + p.duration, 0);
         }
@@ -449,16 +467,17 @@
             weekIndex = parseInt(el.weekSelect.value, 10) || 0;
             lsSet("c25k_selected_week", String(weekIndex));
             const data = programData[weekIndex];
-            el.totalTime.textContent = data.time;
             el.goalDistance.textContent = data.distance;
-            el.schedule.textContent = data.desc;
+            el.schedule.textContent = data.desc + " · +5 min walk warm-up & cool-down";
             renderWorkouts();
             buildQueue(data);
+            el.totalTime.textContent = Math.round(totalSessionSec / 60) + "m";
             resetSession();
         }
 
         // ---------- Session control ----------
         function colorFor(type) { return type === "run" ? "var(--run-color)" : "var(--walk-color)"; }
+        function phaseName(p) { return p.label || p.type; }
 
         function resetSession() {
             stopTick();
@@ -478,7 +497,7 @@
         function renderReady() {
             const first = queue[0];
             if (!first) return;
-            el.phase.textContent = "Ready · " + first.type.toUpperCase();
+            el.phase.textContent = "Ready · " + phaseName(first).toUpperCase();
             el.phase.style.color = colorFor(first.type);
             el.timer.textContent = fmt(first.duration);
             el.progress.style.width = "0%";
@@ -486,7 +505,7 @@
             el.overall.style.width = "0%";
             el.segmentInfo.textContent = "Segment 1/" + queue.length;
             el.sessionRemaining.textContent = fmt(totalSessionSec) + " total";
-            el.nextUp.textContent = queue[1] ? "Next: " + queue[1].type + " · " + fmt(queue[1].duration) : "Final segment";
+            el.nextUp.textContent = queue[1] ? "Next: " + phaseName(queue[1]) + " · " + fmt(queue[1].duration) : "Final segment";
         }
 
         function setPrimary(text, isRunning) {
@@ -539,15 +558,15 @@
         function onPhaseEnter(withCue) {
             lastCountdownBeep = null;
             const p = queue[idx];
-            el.phase.textContent = p.type.toUpperCase();
+            el.phase.textContent = phaseName(p).toUpperCase();
             el.phase.style.color = colorFor(p.type);
             el.progress.style.backgroundColor = colorFor(p.type);
             el.nextUp.textContent = queue[idx + 1]
-                ? "Next: " + queue[idx + 1].type + " · " + fmt(queue[idx + 1].duration)
+                ? "Next: " + phaseName(queue[idx + 1]) + " · " + fmt(queue[idx + 1].duration)
                 : "Final segment — finish strong!";
             if (withCue) {
-                beep(true);
-                vibrate([120, 60, 120]);
+                phaseCue();
+                vibrate([120, 80, 120, 80, 350]);
             }
         }
 
@@ -567,7 +586,7 @@
             el.segmentInfo.textContent = "Segment " + queue.length + "/" + queue.length;
             el.sessionRemaining.textContent = "Done";
             setPrimary("Start Again", false);
-            beep(true);
+            phaseCue();
             vibrate([200, 80, 200, 80, 200]);
         }
 
@@ -603,7 +622,7 @@
             const remSec = Math.ceil(remainingMs / 1000);
             if (remSec <= 3 && remSec > 0 && remSec !== lastCountdownBeep) {
                 lastCountdownBeep = remSec;
-                beep(false);
+                beepCountdown();
             }
             render(remainingMs, elapsedInPhase, phaseMs);
         }
