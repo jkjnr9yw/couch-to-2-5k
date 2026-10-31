@@ -376,27 +376,33 @@
             osc.stop(t + dur + 0.03);
         }
 
+        // Play a cue = a list of [freq, offset, dur, peak, type] notes, guarded once.
+        function playCue(notes) {
+            try { notes.forEach((n) => tone(n[0], n[1], n[2], n[3], n[4])); }
+            catch (e) { /* audio blocked */ }
+        }
+
         // Soft single tick for the 3-2-1 countdown into a switch.
         function beepCountdown() {
-            try { tone(660, 0, 0.14, 0.3); } catch (e) { /* audio blocked */ }
+            playCue([[660, 0, 0.14, 0.3]]);
         }
 
         // Interval-change cue: two short + one longer tone, loud enough to hear mid-run.
         function phaseCue() {
-            try {
-                tone(880,  0.00, 0.12, 0.55, "triangle");
-                tone(880,  0.20, 0.12, 0.55, "triangle");
-                tone(1047, 0.42, 0.55, 0.60, "triangle");
-            } catch (e) { /* audio blocked */ }
+            playCue([
+                [880,  0.00, 0.12, 0.55, "triangle"],
+                [880,  0.20, 0.12, 0.55, "triangle"],
+                [1047, 0.42, 0.55, 0.60, "triangle"]
+            ]);
         }
 
         // Workout-complete cue: a distinct rising three-note flourish (not the interval cue).
         function completionCue() {
-            try {
-                tone(659,  0.00, 0.18, 0.55, "triangle");
-                tone(784,  0.18, 0.18, 0.55, "triangle");
-                tone(1047, 0.38, 0.65, 0.60, "triangle");
-            } catch (e) { /* audio blocked */ }
+            playCue([
+                [659,  0.00, 0.18, 0.55, "triangle"],
+                [784,  0.18, 0.18, 0.55, "triangle"],
+                [1047, 0.38, 0.65, 0.60, "triangle"]
+            ]);
         }
 
         function vibrate(pattern) {
@@ -602,6 +608,11 @@
             vibrate([200, 80, 200, 80, 200]);
         }
 
+        // Milliseconds spent in the current phase (unclamped), from timestamps.
+        function elapsedInCurrentPhase(now = Date.now()) {
+            return phaseAccumMs + (running ? now - segStartMs : 0);
+        }
+
         // ---------- Tick loop (recomputes from timestamps every frame) ----------
         function startTick() {
             stopTick();
@@ -615,7 +626,7 @@
         function tick() {
             if (!running) return;
             const now = Date.now();
-            let elapsedInPhase = phaseAccumMs + (now - segStartMs);
+            let elapsedInPhase = elapsedInCurrentPhase(now);
             let phaseMs = queue[idx].duration * 1000;
 
             // Advance across any phases that fully elapsed (handles throttled/background catch-up).
@@ -648,7 +659,7 @@
             const p = queue[idx];
             if (!p) return;
             const phaseMs = p.duration * 1000;
-            const elapsedInPhase = Math.min(phaseMs, phaseAccumMs + (running ? Date.now() - segStartMs : 0));
+            const elapsedInPhase = Math.min(phaseMs, elapsedInCurrentPhase());
             const remainingMs = phaseMs - elapsedInPhase;
             el.timer.textContent = fmt(remainingMs / 1000);
             el.progress.style.width = Math.min(100, (elapsedInPhase / phaseMs) * 100) + "%";
