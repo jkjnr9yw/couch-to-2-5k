@@ -1,5 +1,5 @@
 // Bump CACHE whenever you change any cached asset so clients pick up the new version.
-const CACHE = "c25k-v4";
+const CACHE = "c25k-v5";
 const ASSETS = [
   "./",
   "./index.html",

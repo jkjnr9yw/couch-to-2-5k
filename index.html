@@ -356,6 +356,11 @@
                 const AC = window.AudioContext || window.webkitAudioContext;
                 if (AC) audioCtx = new AC();
             }
+            // iOS/Safari only: ask the OS to duck other apps' audio for our cues.
+            // Unimplemented on Android/Chromium (2026) — harmless no-op there.
+            if ("audioSession" in navigator) {
+                try { navigator.audioSession.type = "transient"; } catch (e) {}
+            }
             if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
         }
 
@@ -382,26 +387,29 @@
             catch (e) { /* audio blocked */ }
         }
 
-        // Soft single tick for the 3-2-1 countdown into a switch.
+        // Cues use loud square waves (harmonically rich) so they cut through background
+        // music/TV — the only lever on Android, where the web can't duck other apps' audio.
+
+        // Countdown tick (3-2-1): a single lower pulse, distinct from the switch cue.
         function beepCountdown() {
-            playCue([[660, 0, 0.14, 0.3]]);
+            playCue([[784, 0, 0.11, 0.5, "square"]]);
         }
 
-        // Interval-change cue: two short + one longer tone, loud enough to hear mid-run.
+        // Interval-change cue: two short + one longer tone, loud and piercing to hear mid-run.
         function phaseCue() {
             playCue([
-                [880,  0.00, 0.12, 0.55, "triangle"],
-                [880,  0.20, 0.12, 0.55, "triangle"],
-                [1047, 0.42, 0.55, 0.60, "triangle"]
+                [1047, 0.00, 0.13, 0.80, "square"],
+                [1047, 0.22, 0.13, 0.80, "square"],
+                [1319, 0.46, 0.50, 0.85, "square"]
             ]);
         }
 
         // Workout-complete cue: a distinct rising three-note flourish (not the interval cue).
         function completionCue() {
             playCue([
-                [659,  0.00, 0.18, 0.55, "triangle"],
-                [784,  0.18, 0.18, 0.55, "triangle"],
-                [1047, 0.38, 0.65, 0.60, "triangle"]
+                [659,  0.00, 0.18, 0.80, "square"],
+                [784,  0.18, 0.18, 0.80, "square"],
+                [1047, 0.38, 0.60, 0.85, "square"]
             ]);
         }
 
