@@ -295,19 +295,21 @@
         const WARMUP_SEC = 300;    // 5-min walk warm-up before each workout
         const COOLDOWN_SEC = 300;  // 5-min walk cool-down after each workout
 
+        // Total session time is computed live from the queue (incl. warm-up/cool-down),
+        // so each week only declares its structure, goal distance, and display copy.
         const programData = [
-            { week: 1,  time: "24m",   distance: "~1.0 mi",       desc: "1m run / 2m walk × 8",            intervals: [{ type: "run", duration: 60  }, { type: "walk", duration: 120 }], repeats: 8 },
-            { week: 2,  time: "24.5m", distance: "~1.1 mi",       desc: "1.5m run / 2m walk × 7",          intervals: [{ type: "run", duration: 90  }, { type: "walk", duration: 120 }], repeats: 7 },
-            { week: 3,  time: "28m",   distance: "~1.2 mi",       desc: "2m run / 2m walk × 7",            intervals: [{ type: "run", duration: 120 }, { type: "walk", duration: 120 }], repeats: 7 },
-            { week: 4,  time: "30m",   distance: "~1.3 mi",       desc: "3m run / 2m walk × 6",            intervals: [{ type: "run", duration: 180 }, { type: "walk", duration: 120 }], repeats: 6 },
-            { week: 5,  time: "30m",   distance: "~1.4 mi",       desc: "4m run / 2m walk × 5",            intervals: [{ type: "run", duration: 240 }, { type: "walk", duration: 120 }], repeats: 5 },
-            { week: 6,  time: "28m",   distance: "~1.45 mi",      desc: "5m run / 2m walk × 4",            intervals: [{ type: "run", duration: 300 }, { type: "walk", duration: 120 }], repeats: 4 },
-            { week: 7,  time: "32m",   distance: "~1.5 mi",       desc: "6m run / 2m walk × 4",            intervals: [{ type: "run", duration: 360 }, { type: "walk", duration: 120 }], repeats: 4 },
-            { week: 8,  time: "35m",   distance: "~1.55 mi",      desc: "8m run / 2m walk × 3 + 5m run",   intervals: [{ type: "run", duration: 480 }, { type: "walk", duration: 120 }], repeats: 3, extra: { type: "run", duration: 300 } },
-            { week: 9,  time: "36m",   distance: "~1.6 mi",       desc: "10m run / 2m walk × 3",           intervals: [{ type: "run", duration: 600 }, { type: "walk", duration: 120 }], repeats: 3 },
-            { week: 10, time: "36m",   distance: "~1.6 mi",       desc: "12m run / 2m walk + 10m run",     intervals: [{ type: "run", duration: 720 }, { type: "walk", duration: 120 }], repeats: 1, extra: { type: "run", duration: 600 } },
-            { week: 11, time: "37m",   distance: "~1.65 mi",      desc: "15m run / 2m walk + 10m run",     intervals: [{ type: "run", duration: 900 }, { type: "walk", duration: 120 }], repeats: 1, extra: { type: "run", duration: 600 } },
-            { week: 12, time: "25m",   distance: "~1.55-1.7 mi",  desc: "25m continuous run",              intervals: [{ type: "run", duration: 1500 }], repeats: 1 }
+            { week: 1,  distance: "~1.0 mi",       desc: "1m run / 2m walk × 8",            intervals: [{ type: "run", duration: 60  }, { type: "walk", duration: 120 }], repeats: 8 },
+            { week: 2,  distance: "~1.1 mi",       desc: "1.5m run / 2m walk × 7",          intervals: [{ type: "run", duration: 90  }, { type: "walk", duration: 120 }], repeats: 7 },
+            { week: 3,  distance: "~1.2 mi",       desc: "2m run / 2m walk × 7",            intervals: [{ type: "run", duration: 120 }, { type: "walk", duration: 120 }], repeats: 7 },
+            { week: 4,  distance: "~1.3 mi",       desc: "3m run / 2m walk × 6",            intervals: [{ type: "run", duration: 180 }, { type: "walk", duration: 120 }], repeats: 6 },
+            { week: 5,  distance: "~1.4 mi",       desc: "4m run / 2m walk × 5",            intervals: [{ type: "run", duration: 240 }, { type: "walk", duration: 120 }], repeats: 5 },
+            { week: 6,  distance: "~1.45 mi",      desc: "5m run / 2m walk × 4",            intervals: [{ type: "run", duration: 300 }, { type: "walk", duration: 120 }], repeats: 4 },
+            { week: 7,  distance: "~1.5 mi",       desc: "6m run / 2m walk × 4",            intervals: [{ type: "run", duration: 360 }, { type: "walk", duration: 120 }], repeats: 4 },
+            { week: 8,  distance: "~1.55 mi",      desc: "8m run / 2m walk × 3 + 5m run",   intervals: [{ type: "run", duration: 480 }, { type: "walk", duration: 120 }], repeats: 3, extra: { type: "run", duration: 300 } },
+            { week: 9,  distance: "~1.6 mi",       desc: "10m run / 2m walk × 3",           intervals: [{ type: "run", duration: 600 }, { type: "walk", duration: 120 }], repeats: 3 },
+            { week: 10, distance: "~1.6 mi",       desc: "12m run / 2m walk + 10m run",     intervals: [{ type: "run", duration: 720 }, { type: "walk", duration: 120 }], repeats: 1, extra: { type: "run", duration: 600 } },
+            { week: 11, distance: "~1.65 mi",      desc: "15m run / 2m walk + 10m run",     intervals: [{ type: "run", duration: 900 }, { type: "walk", duration: 120 }], repeats: 1, extra: { type: "run", duration: 600 } },
+            { week: 12, distance: "~1.55-1.7 mi",  desc: "25m continuous run",              intervals: [{ type: "run", duration: 1500 }], repeats: 1 }
         ];
 
         const $ = (id) => document.getElementById(id);
@@ -385,6 +387,15 @@
                 tone(880,  0.00, 0.12, 0.55, "triangle");
                 tone(880,  0.20, 0.12, 0.55, "triangle");
                 tone(1047, 0.42, 0.55, 0.60, "triangle");
+            } catch (e) { /* audio blocked */ }
+        }
+
+        // Workout-complete cue: a distinct rising three-note flourish (not the interval cue).
+        function completionCue() {
+            try {
+                tone(659,  0.00, 0.18, 0.55, "triangle");
+                tone(784,  0.18, 0.18, 0.55, "triangle");
+                tone(1047, 0.38, 0.65, 0.60, "triangle");
             } catch (e) { /* audio blocked */ }
         }
 
@@ -478,6 +489,14 @@
         // ---------- Session control ----------
         function colorFor(type) { return type === "run" ? "var(--run-color)" : "var(--walk-color)"; }
         function phaseName(p) { return p.label || p.type; }
+        function nextUpText(i, finalMsg) {
+            return queue[i] ? "Next: " + phaseName(queue[i]) + " · " + fmt(queue[i].duration) : finalMsg;
+        }
+        // Fired once per interval change (never once per boundary during background catch-up).
+        function signalPhaseSwitch() {
+            phaseCue();
+            vibrate([120, 80, 120, 80, 350]);
+        }
 
         function resetSession() {
             stopTick();
@@ -505,7 +524,7 @@
             el.overall.style.width = "0%";
             el.segmentInfo.textContent = "Segment 1/" + queue.length;
             el.sessionRemaining.textContent = fmt(totalSessionSec) + " total";
-            el.nextUp.textContent = queue[1] ? "Next: " + phaseName(queue[1]) + " · " + fmt(queue[1].duration) : "Final segment";
+            el.nextUp.textContent = nextUpText(1, "Final segment");
         }
 
         function setPrimary(text, isRunning) {
@@ -522,7 +541,7 @@
             el.skipBtn.disabled = false;
             setPrimary("Pause", true);
             requestWakeLock();
-            onPhaseEnter(false); // sets labels for current phase without a switch beep
+            onPhaseEnter(); // sets labels for the current phase (no cue on manual start)
             startTick();
         }
 
@@ -549,25 +568,18 @@
             phaseAccumMs = 0;
             segStartMs = Date.now();
             if (idx >= queue.length) { finish(); return; }
-            onPhaseEnter(true);
-            if (!running) { // skipping while paused: show the new phase, stay paused
-                render();
-            }
+            onPhaseEnter();
+            signalPhaseSwitch();
+            render(); // reflect the new phase immediately, whether running or paused
         }
 
-        function onPhaseEnter(withCue) {
+        function onPhaseEnter() {
             lastCountdownBeep = null;
             const p = queue[idx];
             el.phase.textContent = phaseName(p).toUpperCase();
             el.phase.style.color = colorFor(p.type);
             el.progress.style.backgroundColor = colorFor(p.type);
-            el.nextUp.textContent = queue[idx + 1]
-                ? "Next: " + phaseName(queue[idx + 1]) + " · " + fmt(queue[idx + 1].duration)
-                : "Final segment — finish strong!";
-            if (withCue) {
-                phaseCue();
-                vibrate([120, 80, 120, 80, 350]);
-            }
+            el.nextUp.textContent = nextUpText(idx + 1, "Final segment — finish strong!");
         }
 
         function finish() {
@@ -586,7 +598,7 @@
             el.segmentInfo.textContent = "Segment " + queue.length + "/" + queue.length;
             el.sessionRemaining.textContent = "Done";
             setPrimary("Start Again", false);
-            phaseCue();
+            completionCue();
             vibrate([200, 80, 200, 80, 200]);
         }
 
@@ -607,6 +619,7 @@
             let phaseMs = queue[idx].duration * 1000;
 
             // Advance across any phases that fully elapsed (handles throttled/background catch-up).
+            let crossed = false;
             while (elapsedInPhase >= phaseMs) {
                 const overflow = elapsedInPhase - phaseMs;
                 idx++;
@@ -615,8 +628,11 @@
                 segStartMs = now - overflow;
                 elapsedInPhase = overflow;
                 phaseMs = queue[idx].duration * 1000;
-                onPhaseEnter(true);
+                onPhaseEnter();
+                crossed = true;
             }
+            // One cue for the phase we landed on, even if several boundaries passed while backgrounded.
+            if (crossed) signalPhaseSwitch();
 
             const remainingMs = phaseMs - elapsedInPhase;
             const remSec = Math.ceil(remainingMs / 1000);
@@ -624,18 +640,16 @@
                 lastCountdownBeep = remSec;
                 beepCountdown();
             }
-            render(remainingMs, elapsedInPhase, phaseMs);
+            render();
         }
 
-        function render(remainingMs, elapsedInPhase, phaseMs) {
+        // Renders the current phase + overall progress from live state (works running or paused).
+        function render() {
             const p = queue[idx];
             if (!p) return;
-            if (remainingMs === undefined) {
-                // Static render (e.g. skip while paused)
-                phaseMs = p.duration * 1000;
-                elapsedInPhase = phaseAccumMs;
-                remainingMs = phaseMs - elapsedInPhase;
-            }
+            const phaseMs = p.duration * 1000;
+            const elapsedInPhase = Math.min(phaseMs, phaseAccumMs + (running ? Date.now() - segStartMs : 0));
+            const remainingMs = phaseMs - elapsedInPhase;
             el.timer.textContent = fmt(remainingMs / 1000);
             el.progress.style.width = Math.min(100, (elapsedInPhase / phaseMs) * 100) + "%";
 

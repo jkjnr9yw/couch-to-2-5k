@@ -1,0 +1,7 @@
+# Files in this directory that should NOT be published to Cloudflare's edge.
+# (Workers Static Assets reads this file; https://developers.cloudflare.com/workers/static-assets/)
+.assetsignore
+.gitignore
+README.md
+LICENSE
+wrangler.toml

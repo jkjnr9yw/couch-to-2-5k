@@ -1,5 +1,5 @@
 // Bump CACHE whenever you change any cached asset so clients pick up the new version.
-const CACHE = "c25k-v3";
+const CACHE = "c25k-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,8 +32,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("./index.html", copy));
+          // Only cache a good shell; never let a 404/500 overwrite the offline fallback.
+          if (res && res.ok && res.type === "basic") {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put("./index.html", copy));
+          }
           return res;
         })
         .catch(() => caches.match("./index.html"))
